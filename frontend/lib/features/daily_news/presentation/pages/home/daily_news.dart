@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_state.dart';
+import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
 
 import '../../../domain/entities/article.dart';
 import '../../widgets/article_tile.dart';
@@ -44,7 +45,39 @@ class DailyNews extends StatelessWidget {
         if (state is RemoteArticlesError) {
           return Scaffold(
               appBar: _buildAppbar(context),
-              body: const Center(child: Icon(Icons.refresh)));
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 60, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error al cargar noticias',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        state.error?.message ?? 'Error desconocido',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        context
+                            .read<RemoteArticlesBloc>()
+                            .add(const GetArticles());
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ));
         }
         if (state is RemoteArticlesDone) {
           return _buildArticlesPage(context, state.articles!);

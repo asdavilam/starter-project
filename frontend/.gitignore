@@ -44,3 +44,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase/Android local configuration
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
+
+# CocoaPods (iOS) - Si planeas probar en simulador de iPhone algún día
+ios/Pods/
+ios/Podfile.lock
+ios/.symlinks/

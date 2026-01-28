@@ -7,8 +7,11 @@ import 'config/theme/app_themes.dart';
 import 'features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'injection_container.dart';
 
+import 'config/firebase_config.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await setupFirebase();
   await initializeDependencies();
 
   runApp(const MyApp());
