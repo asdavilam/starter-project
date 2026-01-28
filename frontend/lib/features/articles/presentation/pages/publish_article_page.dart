@@ -14,7 +14,9 @@ import '../bloc/publish_article_state.dart';
 /// Permite al usuario ingresar título, autor, contenido y seleccionar una imagen
 /// Utiliza PublishArticleBloc para gestionar el estado de la publicación
 class PublishArticlePage extends StatefulWidget {
-  const PublishArticlePage({super.key});
+  final VoidCallback? onCancel;
+
+  const PublishArticlePage({super.key, this.onCancel});
 
   @override
   State<PublishArticlePage> createState() => _PublishArticlePageState();
@@ -24,6 +26,7 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
   final _imagePicker = ImagePicker();
 
@@ -35,11 +38,11 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
   void dispose() {
     _titleController.dispose();
     _authorController.dispose();
+    _descriptionController.dispose();
     _contentController.dispose();
     super.dispose();
   }
 
-  /// Selecciona una imagen de la galería
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
@@ -58,55 +61,36 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al seleccionar imagen: $e'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('Error al seleccionar imagen: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  /// Valida y envía el formulario
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
-      // Validar que se haya seleccionado una imagen
       if (_selectedImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('⚠️ Debes seleccionar una imagen'),
-            backgroundColor: Colors.orange,
-          ),
+              content: Text('⚠️ Debes seleccionar una imagen de portada'),
+              backgroundColor: Colors.orange),
         );
         return;
       }
 
-      // Cachear valores trimmed para evitar recalcular
-      final trimmedContent = _contentController.text.trim();
-      final trimmedTitle = _titleController.text.trim();
-      final trimmedAuthor = _authorController.text.trim();
-
-      // Crear descripción de forma segura (máximo 100 caracteres)
-      final description = trimmedContent.length <= 100
-          ? trimmedContent
-          : trimmedContent.substring(0, 100);
-
-      // Crea la entidad del artículo (sin thumbnailUrl aún)
       final article = ArticleEntity(
-        author: trimmedAuthor,
-        title: trimmedTitle,
-        description: description,
-        content: trimmedContent,
-        thumbnailUrl: '', // Se llenará después del upload
+        author: _authorController.text.trim(),
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        content: _contentController.text.trim(),
+        thumbnailUrl: '',
         publishedAt: DateTime.now(),
         isPublished: _isPublished,
       );
 
-      // Dispara el evento de publicación con el artículo Y la imagen
       context.read<PublishArticleBloc>().add(
-            SubmitArticle(
-              article: article,
-              image: _selectedImage!,
-            ),
+            SubmitArticle(article: article, image: _selectedImage!),
           );
     }
   }
@@ -114,11 +98,30 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Publicar Artículo'),
+        title: const Text(
+          'Crear Historia',
+          style: TextStyle(
+              color: Colors.black,
+              fontFamily: 'Butler',
+              fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () {
+            if (widget.onCancel != null) {
+              widget.onCancel!();
+            } else {
+              if (widget.onCancel != null) {
+                widget.onCancel!();
+              } else {
+                Navigator.of(context).pop();
+              }
+            }
+          },
         ),
       ),
       body: BlocConsumer<PublishArticleBloc, PublishArticleState>(
@@ -126,20 +129,19 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
           if (state is PublishArticleSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('✅ Artículo publicado exitosamente'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
+                  content: Text('✨ Historia publicada correctamente'),
+                  backgroundColor: Colors.green),
             );
-            // Navega de regreso a la Home
-            Navigator.of(context).pop();
+            if (widget.onCancel != null) {
+              widget.onCancel!();
+            } else {
+              Navigator.of(context).pop();
+            }
           } else if (state is PublishArticleFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('❌ Error: ${state.error}'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
+                  content: Text('Error: ${state.error}'),
+                  backgroundColor: Colors.red),
             );
           }
         },
@@ -147,132 +149,134 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
           final isSubmitting = state is PublishArticleSubmitting;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Campo de Título
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Título *',
-                      hintText: 'Escribe el título del artículo',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.title),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'El título es obligatorio';
-                      }
-                      if (value.trim().length < 5) {
-                        return 'El título debe tener al menos 5 caracteres';
-                      }
-                      return null;
-                    },
-                    enabled: !isSubmitting,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Campo de Autor
-                  TextFormField(
-                    controller: _authorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Autor *',
-                      hintText: 'Nombre del autor',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'El autor es obligatorio';
-                      }
-                      return null;
-                    },
-                    enabled: !isSubmitting,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Campo de Contenido (multilínea)
-                  TextFormField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: 'Contenido *',
-                      hintText: 'Escribe el contenido del artículo',
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
-                    ),
-                    maxLines: 8,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'El contenido es obligatorio';
-                      }
-                      if (value.trim().length < 20) {
-                        return 'El contenido debe tener al menos 20 caracteres';
-                      }
-                      return null;
-                    },
-                    enabled: !isSubmitting,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Selector de Imagen
+                  // 1. Image Picker (Hero Style)
                   _buildImagePicker(isSubmitting),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                  // Switches de configuración
-                  SwitchListTile(
-                    title: const Text('Publicar inmediatamente'),
-                    subtitle: const Text('El artículo estará publicado'),
-                    value: _isPublished,
-                    onChanged: isSubmitting
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _isPublished = value;
-                            });
-                          },
+                  // 2. Main Details
+                  const Text('Detalles Principales',
+                      style: TextStyle(
+                          fontFamily: 'Butler',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+
+                  _buildInput(
+                    controller: _titleController,
+                    label: 'Título',
+                    hint: 'Un titular llamativo...',
+                    icon: Icons.title,
+                    maxLength: 100,
+                    isSubmitting: isSubmitting,
+                    validator: (v) =>
+                        v!.trim().length < 5 ? 'Mínimo 5 caracteres' : null,
                   ),
-                  SwitchListTile(
-                    title: const Text('Visible al público'),
-                    subtitle: const Text('El artículo será visible para todos'),
-                    value: _isVisibleToPublic,
-                    onChanged: isSubmitting
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _isVisibleToPublic = value;
-                            });
-                          },
+                  const SizedBox(height: 16),
+
+                  _buildInput(
+                    controller: _authorController,
+                    label: 'Autor',
+                    hint: 'Tu nombre o el del autor',
+                    icon: Icons.person_outline,
+                    isSubmitting: isSubmitting,
+                    validator: (v) => v!.trim().isEmpty ? 'Obligatorio' : null,
                   ),
                   const SizedBox(height: 32),
 
-                  // Botón de Publicar
-                  ElevatedButton(
-                    onPressed: isSubmitting ? null : _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: isSubmitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'Publicar Artículo',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
+                  // 3. Content
+                  const Text('Contenido',
+                      style: TextStyle(
+                          fontFamily: 'Butler',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+
+                  _buildInput(
+                    controller: _descriptionController,
+                    label: 'Resumen',
+                    hint: 'Breve introducción (tipo tweet)...',
+                    icon: Icons.short_text,
+                    maxLength: 140,
+                    maxLines: 3,
+                    isSubmitting: isSubmitting,
+                    validator: (v) =>
+                        v!.trim().length < 10 ? 'Mínimo 10 caracteres' : null,
                   ),
+                  const SizedBox(height: 16),
+
+                  _buildInput(
+                    controller: _contentController,
+                    label: 'Cuerpo de la historia',
+                    hint: 'Desarrolla tu idea aquí...',
+                    icon: Icons.article_outlined,
+                    maxLength: 3000,
+                    maxLines: 15,
+                    isSubmitting: isSubmitting,
+                    validator: (v) =>
+                        v!.trim().length < 20 ? 'Mínimo 20 caracteres' : null,
+                  ),
+                  const SizedBox(height: 32),
+
+                  // 4. Settings
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50], // Very subtle bg
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade100),
+                    ),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Publicar Inmediatamente',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          value: _isPublished,
+                          onChanged: isSubmitting
+                              ? null
+                              : (v) => setState(() => _isPublished = v),
+                        ),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                        SwitchListTile(
+                          title: const Text('Visible al Público',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          value: _isVisibleToPublic,
+                          onChanged: isSubmitting
+                              ? null
+                              : (v) => setState(() => _isVisibleToPublic = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // 5. Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 5,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        disabledBackgroundColor: Colors.grey[300],
+                      ),
+                      child: isSubmitting
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Publicar Historia',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -282,78 +286,136 @@ class _PublishArticlePageState extends State<PublishArticlePage> {
     );
   }
 
-  /// Construye el widget selector de imagen
+  Widget _buildInput({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isSubmitting = false,
+    int? maxLength,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLength: maxLength,
+      maxLines: maxLines,
+      buildCounter: _buildCharacterCount,
+      validator: validator,
+      enabled: !isSubmitting,
+      style: const TextStyle(fontSize: 16),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.grey[50],
+        labelText: label,
+        hintText: hint,
+        alignLabelWithHint: maxLines > 1,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(bottom: 0),
+          child: Icon(icon, color: Colors.grey[600], size: 22),
+        ),
+        labelStyle: TextStyle(color: Colors.grey[600]),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none, // Clean look
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+      ),
+    );
+  }
+
   Widget _buildImagePicker(bool isSubmitting) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Imagen del artículo',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0XFF8B8B8B),
-          ),
+    return GestureDetector(
+      onTap: isSubmitting ? null : _pickImage,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: 220,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _selectedImage != null ? Colors.transparent : Colors.grey[50],
+          borderRadius: BorderRadius.circular(20),
+          border: _selectedImage != null
+              ? null
+              : Border.all(
+                  color: Colors.grey.shade300, style: BorderStyle.solid),
+          image: _selectedImage != null
+              ? DecorationImage(
+                  image: FileImage(_selectedImage!),
+                  fit: BoxFit.cover,
+                )
+              : null,
         ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: isSubmitting ? null : _pickImage,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            height: 200,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[100],
-            ),
-            child: _selectedImage != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      _selectedImage!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Toca para seleccionar imagen',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
+        child: _selectedImage != null
+            ? Stack(
+                children: [
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedImage = null),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 20),
                       ),
-                    ],
+                    ),
                   ),
-          ),
-        ),
-        if (_selectedImage != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: TextButton.icon(
-              onPressed: isSubmitting
-                  ? null
-                  : () {
-                      setState(() {
-                        _selectedImage = null;
-                      });
-                    },
-              icon: const Icon(Icons.delete, size: 18),
-              label: const Text('Eliminar imagen'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_photo_alternate_outlined,
+                      size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Añadir Portada',
+                    style: TextStyle(
+                        fontFamily: 'Butler',
+                        fontSize: 18,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
-            ),
-          ),
-      ],
+      ),
+    );
+  }
+
+  Widget? _buildCharacterCount(
+    BuildContext context, {
+    required int currentLength,
+    required bool isFocused,
+    required int? maxLength,
+  }) {
+    if (maxLength == null) return null;
+    final remaining = maxLength - currentLength;
+    final isNearLimit = remaining <= 20;
+
+    if (!isNearLimit) return null;
+
+    return Text(
+      '$remaining caracteres restantes',
+      style: TextStyle(
+        color: isNearLimit ? Colors.red : Colors.grey,
+        fontWeight: isNearLimit ? FontWeight.bold : FontWeight.normal,
+        fontSize: 12,
+      ),
     );
   }
 }

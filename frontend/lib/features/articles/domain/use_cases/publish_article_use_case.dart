@@ -17,11 +17,7 @@ class PublishArticleUseCase {
     // 2. Llamar a _repository.publishArticle(article)
     // 3. Retornar DataState<String> con el ID del artículo creado
 
-    // Debug info - solo para desarrollo
-    assert(() {
-      // ignore: avoid_print
-      print('📰 [DEBUG] Artículo publicado: ${article.title}');
-      return true;
-    }());
+    // TODO: Implementar llamada real al repositorio
+    // _repository.publishArticle(article);
   }
 }

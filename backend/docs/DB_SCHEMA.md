@@ -78,6 +78,10 @@ isPublished
 boolean
 Yes
 Indicates whether the article is publicly visible.
+isVisibleToPublic
+boolean
+Yes
+Indicates whether the article is visible to public users. Provides additional visibility control beyond isPublished status.
 source
 string
 No
@@ -110,11 +114,13 @@ The following fields are expected to be indexed for querying and ordering:
 	•	publishedAt
 	•	createdAt
 	•	isPublished
+	•	isVisibleToPublic
 	•	author
 
 Composite indexes may be required for queries such as:
 	•	Fetching published articles ordered by date
 	•	Filtering articles by author and publication status
+	•	Filtering by isPublished and isVisibleToPublic with date ordering
 
 ⸻
 

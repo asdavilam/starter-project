@@ -53,6 +53,9 @@ dependencies:
   #image picker
   image_picker: ^1.0.4
 
+  #share
+  share_plus: ^7.2.1
+
 
 dev_dependencies:
   flutter_test:

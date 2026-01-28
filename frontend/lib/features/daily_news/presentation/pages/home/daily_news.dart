@@ -7,9 +7,6 @@ import 'package:news_app_clean_architecture/features/daily_news/presentation/blo
 
 import '../../../domain/entities/article.dart';
 import '../../widgets/article_tile.dart';
-import 'package:news_app_clean_architecture/features/articles/presentation/pages/publish_article_page.dart';
-import 'package:news_app_clean_architecture/features/articles/presentation/bloc/publish_article_bloc.dart';
-import 'package:news_app_clean_architecture/injection_container.dart';
 
 class DailyNews extends StatelessWidget {
   const DailyNews({Key? key}) : super(key: key);
@@ -23,14 +20,25 @@ class DailyNews extends StatelessWidget {
     return AppBar(
       title: const Text(
         'Daily News',
-        style: TextStyle(color: Colors.black),
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Butler',
+        ),
       ),
+      centerTitle: false,
       actions: [
+        IconButton(
+          onPressed: () {},
+          icon:
+              const Icon(Icons.notifications_none_rounded, color: Colors.black),
+        ),
         GestureDetector(
           onTap: () => _onShowSavedArticlesViewTapped(context),
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Icon(Icons.bookmark, color: Colors.black),
+            child: Icon(Icons.bookmark_border_rounded, color: Colors.black),
           ),
         ),
       ],
@@ -38,13 +46,31 @@ class DailyNews extends StatelessWidget {
   }
 
   _buildPage() {
-    return BlocBuilder<RemoteArticlesBloc, RemoteArticlesState>(
+    return BlocConsumer<RemoteArticlesBloc, RemoteArticlesState>(
+      listener: (context, state) {
+        if (state is RemoteArticlesError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('⚠️ ${state.error ?? "No se pudo actualizar"}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
       builder: (context, state) {
+        // 1. Si hay datos (ya sea Done, Loading con datos, o Error con datos) mostramos la lista
+        if (state.articles != null && state.articles!.isNotEmpty) {
+          return _buildArticlesPage(context, state.articles!);
+        }
+
+        // 2. Si no hay datos y está cargando, mostramos spinner centro
         if (state is RemoteArticlesLoading) {
           return Scaffold(
               appBar: _buildAppbar(context),
               body: const Center(child: CupertinoActivityIndicator()));
         }
+
+        // 3. Si no hay datos y hay error, mostramos pantalla de error
         if (state is RemoteArticlesError) {
           return Scaffold(
               appBar: _buildAppbar(context),
@@ -53,17 +79,17 @@ class DailyNews extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.error_outline,
-                        size: 60, color: Colors.red),
+                        size: 60, color: Colors.grey),
                     const SizedBox(height: 16),
                     Text(
-                      'Error al cargar noticias',
+                      'No pudimos cargar las noticias',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
-                        state.error?.message ?? 'Error desconocido',
+                        state.error ?? 'Error desconocido',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
@@ -82,9 +108,8 @@ class DailyNews extends StatelessWidget {
                 ),
               ));
         }
-        if (state is RemoteArticlesDone) {
-          return _buildArticlesPage(context, state.articles!);
-        }
+
+        // 4. Default / Empty
         return const SizedBox();
       },
     );
@@ -92,32 +117,29 @@ class DailyNews extends StatelessWidget {
 
   Widget _buildArticlesPage(
       BuildContext context, List<ArticleEntity> articles) {
-    List<Widget> articleWidgets = [];
-    for (var article in articles) {
-      articleWidgets.add(ArticleWidget(
-        article: article,
-        onArticlePressed: (article) => _onArticlePressed(context, article),
-      ));
-    }
-
     return Scaffold(
       appBar: _buildAppbar(context),
-      body: ListView(
-        children: articleWidgets,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BlocProvider(
-                create: (_) => sl<PublishArticleBloc>(),
-                child: const PublishArticlePage(),
-              ),
-            ),
-          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<RemoteArticlesBloc>().add(const GetArticles());
+          // Esperar un poco o hasta que termine el loading?
+          // RefreshIndicator espera un Future.
+
+          // Opción pro: Esperar a que el estado cambie.
+          // Opción simple: Delay fijo o null (no bloqueante visualmente gracias al bloc).
+          // Dado que el bloc emite estados, podemos simplemente retornar.
+          return Future.delayed(const Duration(seconds: 1));
         },
-        child: const Icon(Icons.add),
+        child: ListView.builder(
+          itemCount: articles.length,
+          itemBuilder: (context, index) {
+            return ArticleWidget(
+              article: articles[index],
+              onArticlePressed: (article) =>
+                  _onArticlePressed(context, article),
+            );
+          },
+        ),
       ),
     );
   }

@@ -23,6 +23,10 @@ class RemoteArticlesBloc
 
   void onGetArticles(
       GetArticles event, Emitter<RemoteArticlesState> emit) async {
+    // 0. Conservar datos actuales al cargar (para evitar pantalla blanca en refresh)
+    final currentArticles = state.articles;
+    emit(RemoteArticlesLoading(articles: currentArticles));
+
     // Consultar ambas fuentes en paralelo
     final results = await Future.wait([
       _getPublishedArticlesUseCase(), // Firebase
@@ -60,15 +64,12 @@ class RemoteArticlesBloc
 
       emit(RemoteArticlesDone(combinedArticles));
     } else {
-      // Si ambas fallaron, priorizamos el error de API o mostramos uno genérico
-      if (apiResult is DataFailed) {
-        emit(RemoteArticlesError(apiResult.error!));
-      } else if (firebaseResult is DataFailed) {
-        emit(RemoteArticlesError(firebaseResult.error!));
-      } else {
-        // Lista vacía sin errores explícitos (raro pero posible)
-        emit(const RemoteArticlesDone([]));
-      }
+      // Si ambas fallaron, conservamos los datos viejos si existen y emitimos error
+      final errorMsg = apiResult.error?.message ??
+          firebaseResult.error?.message ??
+          'Error desconocido al actualizar';
+
+      emit(RemoteArticlesError(errorMsg, articles: currentArticles));
     }
   }
 

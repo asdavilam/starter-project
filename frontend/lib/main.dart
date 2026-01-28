@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:news_app_clean_architecture/config/routes/routes.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
-import 'package:news_app_clean_architecture/features/daily_news/presentation/pages/home/daily_news.dart';
 import 'config/theme/app_themes.dart';
 import 'features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
+import 'features/daily_news/presentation/pages/home/main_wrapper.dart';
 import 'injection_container.dart';
 
 import 'config/firebase_config.dart';
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: theme(),
           onGenerateRoute: AppRoutes.onGenerateRoutes,
-          home: const DailyNews()),
+          home: const MainWrapper()),
     );
   }
 }

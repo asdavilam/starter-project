@@ -21,8 +21,12 @@ abstract class RemoteArticlesState extends Equatable {
 /// Estado inicial y de carga
 ///
 /// Indica que el bloc está procesando la solicitud de artículos
+/// Estado inicial y de carga
+///
+/// Indica que el bloc está procesando la solicitud de artículos
 class RemoteArticlesLoading extends RemoteArticlesState {
-  const RemoteArticlesLoading();
+  const RemoteArticlesLoading({List<ArticleEntity>? articles})
+      : super(articles: articles);
 }
 
 /// Estado exitoso
@@ -39,5 +43,6 @@ class RemoteArticlesDone extends RemoteArticlesState {
 /// Indica que ocurrió un error al obtener los artículos
 /// Contiene el mensaje de error
 class RemoteArticlesError extends RemoteArticlesState {
-  const RemoteArticlesError(String error) : super(error: error);
+  const RemoteArticlesError(String error, {List<ArticleEntity>? articles})
+      : super(error: error, articles: articles);
 }

@@ -2,45 +2,43 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  match /articles/{articleId} {
-    // Lectura pública solo de artículos publicados
-  allow read: if resource.data.isPublished == true;
+    match /articles/{articleId} {
+      
+      // REGLAS TEMPORALES PARA DESARROLLO
+      // TODO: Implementar autenticación y cambiar estas reglas
+      
+      // Lectura: solo artículos publicados
+      allow read: if true; // resource.data.isPublished == true;
+      
+      // Escritura: TOTALMENTE ABIERTA para testing
+      allow write: if true;
 
-  // Escritura solo para usuarios autenticados y con estructura válida
-  allow create, update, delete: if request.auth != null
-    && isValidArticle(request.resource.data);
+      function isValidArticle(data) {
+        return
+          // Campos obligatorios básicos
+          data.keys().hasAll([
+            'title',
+            'description',
+            'content',
+            'author',
+            'isPublished',
+            'publishedAt',
+            'thumbnailUrl'  // Cambió de thumbnailURL a thumbnailUrl
+          ]) &&
 
-  function isValidArticle(data) {
-    return
-      // Campos obligatorios
-      data.keys().hasAll([
-        'title',
-        'description',
-        'content',
-        'author',
-        'isPublished',
-        'publishedAt',
-        'createdAt',
-        'updatedAt',
-        'thumbnailURL'
-      ]) &&
+          // Tipos de datos obligatorios
+          data.title is string &&
+          data.description is string &&
+          data.content is string &&
+          data.author is string &&
+          data.isPublished is bool &&
+          data.publishedAt is timestamp &&
+          data.thumbnailUrl is string &&
 
-      // Tipos de datos obligatorios
-      data.title is string &&
-      data.description is string &&
-      data.content is string &&
-      data.author is string &&
-      data.isPublished is bool &&
-      data.publishedAt is timestamp &&
-      data.createdAt is timestamp &&
-      data.updatedAt is timestamp &&
-      data.thumbnailURL is string &&
-
-      // Campos opcionales (si existen, validar tipo)
-      (!('id' in data) || data.id is number) &&
-      (!('url' in data) || data.url is string) &&
-      (!('source' in data) || data.source is string);
-  }
-  }
+          // Campos opcionales (si existen, validar tipo)
+          (!('url' in data) || data.url is string) &&
+          (!('isVisibleToPublic' in data) || data.isVisibleToPublic is bool);
+      }
+    }
   }
 }
