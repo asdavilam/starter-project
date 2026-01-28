@@ -7,6 +7,9 @@ import 'package:news_app_clean_architecture/features/daily_news/presentation/blo
 
 import '../../../domain/entities/article.dart';
 import '../../widgets/article_tile.dart';
+import 'package:news_app_clean_architecture/features/articles/presentation/pages/publish_article_page.dart';
+import 'package:news_app_clean_architecture/features/articles/presentation/bloc/publish_article_bloc.dart';
+import 'package:news_app_clean_architecture/injection_container.dart';
 
 class DailyNews extends StatelessWidget {
   const DailyNews({Key? key}) : super(key: key);
@@ -104,7 +107,15 @@ class DailyNews extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: REPLACE ROUTE WITH YOUR "ADD ARTICLE" PAGE
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlocProvider(
+                create: (_) => sl<PublishArticleBloc>(),
+                child: const PublishArticlePage(),
+              ),
+            ),
+          );
         },
         child: const Icon(Icons.add),
       ),
