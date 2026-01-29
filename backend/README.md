@@ -3,7 +3,21 @@ In this folder are all the [Firebase Firestore](https://firebase.google.com/docs
 You will use this folder to add the schema of the *Articles* you want to upload for the app and to add the rules that enforce this schema. 
 
 ## DB Schema
-**TODO: ADD YOUR DB SCHEMA (SCHEMA FOR "ARTICLES" AND ANY OTHER SCHEMAS) HERE**
+## DB Schema
+
+### Tables (Collections)
+
+#### `articles`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | string (UUID) | Unique identifier |
+| `title` | string | Article headline |
+| `content` | string | Full markdown/text content |
+| `author` | string | Author name |
+| `publishedAt` | timestamp | Publication date |
+| `thumbnailUrl` | string | URL to cover image |
+| `isPublished` | boolean | Visibility flag |
+| `category` | string | (Optional) News category |
 
 ## Getting Started
 Before starting to work on the backend, you must have a Firebase project with the [Firebase Firestore](https://firebase.google.com/docs/firestore), [Firebase Cloud Storage](https://firebase.google.com/docs/storage) and [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) technologies enabled.
@@ -42,6 +56,17 @@ firebase deploy
 ```
 This will deploy all the rules you write in `firestore.rules` to your Firebase Firestore project.
 Be careful becasuse it will overwrite the existing firestore.rules file of your project.
+
+### Firestore Rules Strategy
+
+> **Current Status**: Development Mode / Public Read
+
+*   **Read Access (`allow read: if true`)**:
+    *   The app is a News Aggregator/Public Blog.
+    *   All articles are intended to be publicly accessible without login.
+*   **Write Access (`allow write: if true`)**:
+    *   Currently enabled for development ease (creating articles from the app).
+    *   *Note*: In a production environment, this should be restricted to authenticated Admin users only.
 
 ## Running the project in a local emulator
 To run the application locally, use the following command:

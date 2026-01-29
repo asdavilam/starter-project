@@ -2,8 +2,8 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // REGLAS TEMPORALES PARA DESARROLLO
-    // TODO: Implementar autenticación y cambiar estas reglas
+    // Public Access Rules for News App Media
+    // Read/Write: Enabled for development/testing environments
     
     // Permitir lectura y escritura en toda la colección de artículos
     match /media/{allPaths=**} {
