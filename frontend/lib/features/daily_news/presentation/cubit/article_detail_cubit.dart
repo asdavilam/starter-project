@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/gemini_service.dart';
 import '../../../../core/services/tts_service.dart';
+import '../../../subscription/domain/repositories/subscription_repository.dart';
 import '../../domain/entities/article.dart';
 
 /// States for Article Detail features (AI Summary & TTS)
@@ -21,6 +22,10 @@ class ArticleDetailLoadingSummary extends ArticleDetailState {
   const ArticleDetailLoadingSummary();
 }
 
+class ArticleDetailLoadingTranslation extends ArticleDetailState {
+  const ArticleDetailLoadingTranslation();
+}
+
 class ArticleDetailSummaryLoaded extends ArticleDetailState {
   final String summary;
 
@@ -28,6 +33,16 @@ class ArticleDetailSummaryLoaded extends ArticleDetailState {
 
   @override
   List<Object?> get props => [summary];
+}
+
+class ArticleDetailTranslationLoaded extends ArticleDetailState {
+  final String translation;
+  final String language;
+
+  const ArticleDetailTranslationLoaded(this.translation, this.language);
+
+  @override
+  List<Object?> get props => [translation, language];
 }
 
 class ArticleDetailSummaryError extends ArticleDetailState {
@@ -39,22 +54,38 @@ class ArticleDetailSummaryError extends ArticleDetailState {
   List<Object?> get props => [message];
 }
 
+class ArticleDetailQuotaExceeded extends ArticleDetailState {
+  const ArticleDetailQuotaExceeded();
+}
+
 /// Cubit for managing Article Detail AI features
 class ArticleDetailCubit extends Cubit<ArticleDetailState> {
   final GeminiService _geminiService;
   final TtsService _ttsService;
+  final SubscriptionRepository _subscriptionRepository;
 
   ArticleDetailCubit({
     required GeminiService geminiService,
     required TtsService ttsService,
+    required SubscriptionRepository subscriptionRepository,
   })  : _geminiService = geminiService,
         _ttsService = ttsService,
+        _subscriptionRepository = subscriptionRepository,
         super(const ArticleDetailInitial());
 
   /// Generates AI summary for the article
-  /// Uses URL as cache key to avoid regenerating
   Future<void> generateSummary(ArticleEntity article) async {
-    if (article.content == null || article.content!.isEmpty) {
+    if (!_canUseAiFeature()) {
+      emit(const ArticleDetailQuotaExceeded());
+      return;
+    }
+
+    // Use content if available, otherwise fallback to description
+    final textToProcess = (article.content?.isNotEmpty == true)
+        ? article.content!
+        : article.description;
+
+    if (textToProcess == null || textToProcess.isEmpty) {
       emit(const ArticleDetailSummaryError(
         'No hay contenido disponible para resumir',
       ));
@@ -65,13 +96,65 @@ class ArticleDetailCubit extends Cubit<ArticleDetailState> {
 
     try {
       final summary = await _geminiService.getArticleSummary(
-        article.content!,
+        textToProcess,
         cacheKey: article.url ?? article.title ?? '',
       );
 
+      // Note: Quota decrement is handled by the UI listener calling SubscriptionCubit
+      // to ensure global state state synchronization.
+
       emit(ArticleDetailSummaryLoaded(summary));
     } catch (e) {
-      // Extract user-friendly message from exception
+      _handleError(e);
+    }
+  }
+
+  /// Translates article to target language
+  Future<void> translateArticle(ArticleEntity article, String language) async {
+    if (!_canUseAiFeature()) {
+      emit(const ArticleDetailQuotaExceeded());
+      return;
+    }
+
+    // Use content if available, otherwise fallback to description
+    final textToProcess = (article.content?.isNotEmpty == true)
+        ? article.content!
+        : article.description;
+
+    if (textToProcess == null || textToProcess.isEmpty) {
+      emit(const ArticleDetailSummaryError('No hay contenido para traducir'));
+      return;
+    }
+
+    emit(const ArticleDetailLoadingTranslation());
+
+    try {
+      final translation = await _geminiService.translateArticle(
+        textToProcess,
+        language,
+      );
+
+      if (translation != null) {
+        // Quota decrement is handled by UI listener
+        emit(ArticleDetailTranslationLoaded(translation, language));
+      } else {
+        emit(
+            const ArticleDetailSummaryError('No se pudo traducir el artículo'));
+      }
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  bool _canUseAiFeature() {
+    return _subscriptionRepository.isProUser ||
+        _subscriptionRepository.remainingFreeRequests > 0;
+  }
+
+  void _handleError(Object e) {
+    if (e.toString().contains('Quota exceeded')) {
+      emit(const ArticleDetailQuotaExceeded());
+    } else {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       emit(ArticleDetailSummaryError(errorMessage));
     }
@@ -82,7 +165,7 @@ class ArticleDetailCubit extends Cubit<ArticleDetailState> {
     try {
       await _ttsService.speak(text);
     } catch (e) {
-      // TTS errors are non-critical, just log or ignore
+      // TTS errors are non-critical
     }
   }
 

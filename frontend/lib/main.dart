@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:news_app_clean_architecture/config/routes/routes.dart';
-import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
+
 import 'config/theme/app_themes.dart';
 import 'features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
+import 'features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
 import 'features/daily_news/presentation/pages/home/main_wrapper.dart';
+import 'features/subscription/presentation/cubit/subscription_cubit.dart';
 import 'injection_container.dart';
 
 import 'config/firebase_config.dart';
@@ -27,13 +28,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<RemoteArticlesBloc>(
-      create: (context) => sl()..add(const GetArticles()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<RemoteArticlesBloc>(
+          create: (context) => sl()..add(const GetArticles()),
+        ),
+        BlocProvider<SubscriptionCubit>(
+          create: (context) => sl<SubscriptionCubit>(),
+        ),
+      ],
       child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: theme(),
-          onGenerateRoute: AppRoutes.onGenerateRoutes,
-          home: const MainWrapper()),
+        debugShowCheckedModeBanner: false,
+        theme: theme(),
+        home: const MainWrapper(),
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 /// Gemini AI Service for generating article summaries
@@ -13,7 +14,7 @@ class GeminiService {
       model: 'gemini-2.5-flash-lite', // Current supported model
       apiKey: apiKey,
     );
-    print('✅ GeminiService initialized with model: gemini-2.5-flash-lite');
+    debugPrint('✅ GeminiService initialized with model: gemini-2.5-flash-lite');
   }
 
   /// Generates a 3-point summary of the article content
@@ -27,7 +28,10 @@ class GeminiService {
     final prompt = _buildSummaryPrompt(content);
 
     try {
-      final response = await _model.generateContent([Content.text(prompt)]);
+      // usage of timeout to prevent UI blocking
+      final response = await _model.generateContent(
+          [Content.text(prompt)]).timeout(const Duration(seconds: 10));
+
       final summary = response.text ?? 'No se pudo generar el resumen';
 
       // Cache result
@@ -35,11 +39,11 @@ class GeminiService {
         _cache[cacheKey] = summary;
       }
 
-      print('✅ Summary generated successfully (${summary.length} chars)');
+      debugPrint('✅ Summary generated successfully (${summary.length} chars)');
       return summary;
     } catch (e) {
       // Debug: Log actual error for development
-      print('❌ Gemini API Error: $e');
+      debugPrint('❌ Gemini API Error: $e');
 
       // User-friendly error message instead of technical details
       throw Exception(
@@ -77,4 +81,29 @@ FORMATO DE SALIDA:
 
   /// Gets cache size for debugging/monitoring
   int get cacheSize => _cache.length;
+
+  /// Translates the article content to the target language
+  Future<String?> translateArticle(String text, String targetLanguage) async {
+    final prompt =
+        'Translate the following news article text to $targetLanguage. '
+        'Maintain the professional tone and journalistic style. '
+        'Do not add any introductory or concluding remarks, just the translation:\n\n$text';
+
+    try {
+      final content = [Content.text(prompt)];
+      final response = await _model
+          .generateContent(content)
+          .timeout(const Duration(seconds: 10));
+      return response.text;
+    } catch (e) {
+      debugPrint('❌ Gemini Translation Error: $e');
+      if (e.toString().contains('429')) {
+        throw Exception('Quota exceeded');
+      }
+      if (e.toString().contains('TimeoutException')) {
+        throw Exception('El servicio tardó demasiado en responder.');
+      }
+      return null;
+    }
+  }
 }

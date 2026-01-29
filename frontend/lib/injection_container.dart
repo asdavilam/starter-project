@@ -15,6 +15,11 @@ import 'features/daily_news/domain/usecases/remove_article.dart';
 import 'features/daily_news/domain/usecases/save_article.dart';
 import 'features/daily_news/presentation/bloc/article/local/local_article_bloc.dart';
 
+import 'features/subscription/data/data_sources/local/subscription_local_data_source.dart';
+import 'features/subscription/data/repositories/subscription_repository_impl.dart';
+import 'features/subscription/domain/repositories/subscription_repository.dart';
+import 'features/subscription/presentation/cubit/subscription_cubit.dart';
+
 // Articles Feature imports
 import 'features/articles/data/data_sources/articles_firebase_datasource.dart';
 import 'features/articles/data/data_sources/local/articles_local_data_source.dart';
@@ -54,8 +59,16 @@ Future<void> initializeDependencies() async {
       await $FloorAppDatabase.databaseBuilder('app_database.db').build();
   sl.registerSingleton<AppDatabase>(database);
 
-  // Shared Preferences
+  // Shared  // Subscription Feature
+  sl.registerFactory<SubscriptionLocalDataSource>(
+      () => SubscriptionLocalDataSourceImpl(sharedPreferences: sl()));
+  sl.registerFactory<SubscriptionRepository>(
+      () => SubscriptionRepositoryImpl(localDataSource: sl()));
+  sl.registerFactory<SubscriptionCubit>(() => SubscriptionCubit(sl()));
+
+  // External
   final sharedPreferences = await SharedPreferences.getInstance();
+
   sl.registerSingleton<SharedPreferences>(sharedPreferences);
 
   // Dio
@@ -171,6 +184,7 @@ Future<void> initializeDependencies() async {
     () => ArticleDetailCubit(
       geminiService: sl(),
       ttsService: sl(),
+      subscriptionRepository: sl<SubscriptionRepository>(),
     ),
   );
 

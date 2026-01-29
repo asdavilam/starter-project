@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../../core/constants/app_colors.dart';
 import '../../../../../../core/constants/app_constants.dart';
 import '../../../../domain/entities/article.dart';
+import '../../../../../subscription/presentation/cubit/subscription_cubit.dart';
+import '../../../../../subscription/presentation/cubit/subscription_state.dart';
 
 /// Modular SliverAppBar component for Article Details
 /// Extracted for better maintainability and testability
@@ -12,6 +15,9 @@ class ArticleDetailAppBar extends StatelessWidget {
   final VoidCallback onShowAISummary;
   final VoidCallback onPlayAudio;
   final ValueChanged<String> onReadingSettingSelected;
+  final VoidCallback onTranslate;
+
+  final Color? backgroundColor;
 
   const ArticleDetailAppBar({
     Key? key,
@@ -19,6 +25,8 @@ class ArticleDetailAppBar extends StatelessWidget {
     required this.onShowAISummary,
     required this.onPlayAudio,
     required this.onReadingSettingSelected,
+    required this.onTranslate,
+    this.backgroundColor,
   }) : super(key: key);
 
   @override
@@ -28,7 +36,8 @@ class ArticleDetailAppBar extends StatelessWidget {
       floating: false,
       pinned: true,
       stretch: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor:
+          backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
       elevation: AppConstants.elevationNone,
       leading: _buildBackButton(context),
       actions: _buildActions(context),
@@ -49,14 +58,62 @@ class ArticleDetailAppBar extends StatelessWidget {
 
   List<Widget> _buildActions(BuildContext context) {
     return [
-      // AI Summary Button
-      IconButton(
-        icon: const Icon(Icons.auto_awesome, color: AppColors.iconOnPrimary),
-        onPressed: onShowAISummary,
-        style: IconButton.styleFrom(
-          backgroundColor: AppColors.overlay,
-        ),
+      // AI Actions Group (Summary & Translate)
+      BlocBuilder<SubscriptionCubit, SubscriptionState>(
+        builder: (context, state) {
+          final remaining = state.remainingRequests;
+          final isPro = state.isPro;
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Translate Button
+              IconButton(
+                icon:
+                    const Icon(Icons.translate, color: AppColors.iconOnPrimary),
+                onPressed: onTranslate,
+                style: IconButton.styleFrom(backgroundColor: AppColors.overlay),
+              ),
+
+              // Summary Button with Badge
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.auto_awesome,
+                        color: AppColors.iconOnPrimary),
+                    onPressed: onShowAISummary,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.overlay,
+                    ),
+                  ),
+                  if (!isPro)
+                    Positioned(
+                      right: 4,
+                      top: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$remaining',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
+
       // TTS Button
       IconButton(
         icon: const Icon(Icons.volume_up, color: AppColors.iconOnPrimary),

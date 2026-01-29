@@ -4,6 +4,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../../../injection_container.dart';
 import '../bloc/account_cubit.dart';
 import '../bloc/account_state.dart';
+import '../../../subscription/presentation/cubit/subscription_cubit.dart';
+import '../../../subscription/presentation/cubit/subscription_state.dart';
 import '../../../articles/presentation/widgets/my_article_tile.dart';
 import '../../../articles/presentation/pages/publish_article_page.dart';
 import '../../../articles/presentation/bloc/publish_article_bloc.dart';
@@ -46,6 +48,7 @@ class _AccountView extends HookWidget {
           child: Column(
             children: [
               const _MockUserProfile(),
+              const _SubscriptionAdminPanel(),
               const Divider(thickness: 1),
               _buildMyArticlesList(context),
             ],
@@ -182,6 +185,101 @@ class _MockUserProfile extends StatelessWidget {
           style: const TextStyle(color: Colors.grey),
         ),
       ],
+    );
+  }
+}
+
+class _SubscriptionAdminPanel extends StatelessWidget {
+  const _SubscriptionAdminPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      child: BlocBuilder<SubscriptionCubit, SubscriptionState>(
+        builder: (context, state) {
+          final isPro = state.isPro;
+          final remaining = state.remainingRequests;
+
+          return Card(
+            color: Colors.grey[50],
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.grey[300]!),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '⚙️ Simulación de Suscripción',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        isPro ? Icons.star : Icons.star_border,
+                        color: isPro ? Colors.amber : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isPro ? 'Estado: PRO' : 'Estado: Gratuito',
+                        style: TextStyle(
+                          color: isPro ? Colors.green : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!isPro) ...[
+                    const SizedBox(height: 8),
+                    Text('Créditos restantes: $remaining/20'),
+                    LinearProgressIndicator(
+                      value: remaining / 20.0,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        remaining > 5 ? Colors.blue : Colors.red,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          if (isPro) {
+                            context.read<SubscriptionCubit>().downgradeToFree();
+                          } else {
+                            context.read<SubscriptionCubit>().upgradeToPro();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isPro ? Colors.grey : Colors.amber,
+                        ),
+                        child: Text(isPro ? 'Bajar a Free' : 'Simular PRO'),
+                      ),
+                      if (!isPro)
+                        TextButton(
+                          onPressed: () {
+                            // Reset default quota logic handled by repository,
+                            // but we can force refresh if we had a reset method in Cubit.
+                            // For now, we will just downgrade to Free which also resets/refreshes in our logic
+                            context.read<SubscriptionCubit>().downgradeToFree();
+                          },
+                          child: const Text('Resetear Cupo'),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -37,7 +37,7 @@ class AISummaryBottomSheet extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(AppConstants.spacing8),
           decoration: BoxDecoration(
-            color: AppColors.accent.withOpacity(0.1),
+            color: AppColors.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppConstants.spacing8),
           ),
           child: const Icon(
@@ -159,7 +159,7 @@ class AISummaryBottomSheet extends StatelessWidget {
   Widget _buildErrorState(BuildContext context, String message) {
     return Column(
       children: [
-        Icon(
+        const Icon(
           Icons.error_outline,
           size: AppConstants.iconSizeXLarge,
           color: AppColors.error,

@@ -71,7 +71,7 @@ class ReadingSettingsBottomSheet extends StatelessWidget {
             ),
             Text(
               '${settings.fontSize.round()}',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ],
         ),

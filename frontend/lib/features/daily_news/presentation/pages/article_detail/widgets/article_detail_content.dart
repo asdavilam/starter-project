@@ -85,11 +85,18 @@ class ArticleDetailContent extends StatelessWidget {
   }
 
   Widget _buildBodyContent(BuildContext context, ReadingSettings settings) {
-    // News API truncates content with "[+X chars]"
-    // Prioritize description, then clean content
-    String displayText = article?.description ??
-        article?.content ??
-        AppConstants.noContentMessage;
+    String? content = article?.content;
+    String? description = article?.description;
+
+    // Robust content selection:
+    // 1. Use Content if it exists and is not empty.
+    // 2. Fallback to Description if Content is missing.
+    // 3. Fallback to "No content" message.
+    String displayText = (content != null && content.trim().isNotEmpty)
+        ? content
+        : (description != null && description.trim().isNotEmpty)
+            ? description
+            : AppConstants.noContentMessage;
 
     // Remove truncation markers like "[+1234 chars]"
     displayText =

@@ -14,10 +14,13 @@ class ArticleDetailBottomBar extends StatelessWidget {
   final ArticleEntity? article;
   final VoidCallback onShare;
 
+  final Color? backgroundColor;
+
   const ArticleDetailBottomBar({
     Key? key,
     required this.article,
     required this.onShare,
+    this.backgroundColor,
   }) : super(key: key);
 
   @override
@@ -28,7 +31,7 @@ class ArticleDetailBottomBar extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
+            color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
             boxShadow: [
               BoxShadow(
                 color: AppColors.shadow,
