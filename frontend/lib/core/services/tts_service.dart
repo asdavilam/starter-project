@@ -23,11 +23,20 @@ class TtsService {
     _isInitialized = true;
   }
 
+  /// Sets the TTS language (e.g., 'es-ES', 'en-US')
+  Future<void> setLanguage(String language) async {
+    await _tts.setLanguage(language);
+  }
+
   /// Speaks the provided text
   /// Automatically initializes if not done yet
-  Future<void> speak(String text) async {
+  Future<void> speak(String text, {String? language}) async {
     if (!_isInitialized) {
       await initialize();
+    }
+
+    if (language != null) {
+      await setLanguage(language);
     }
 
     await _tts.speak(text);

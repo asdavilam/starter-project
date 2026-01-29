@@ -105,4 +105,46 @@ class AppConstants {
   static const String draftsRoute = '/drafts';
   static const String accountRoute = '/account';
   static const String publishArticleRoute = '/publish-article';
+
+  // ============ Supported Languages ============
+  static const Map<String, String> supportedTranslationLanguages = {
+    'Spanish': '🇪🇸 Español (Spanish)',
+    'English': '🇺🇸 Inglés (English)',
+    'French': '🇫🇷 Francés (Français)',
+    'German': '🇩🇪 Alemán (Deutsch)',
+  };
+
+  static const Map<String, String> supportedTTSLanguages = {
+    'Spanish': '🇪🇸 Español (Spanish)',
+    'English': '🇺🇸 Inglés (English)',
+  };
+
+  // ============ UI Strings (Centralized) ============
+  static const String chooseLanguageTitle = 'Seleccionar Idioma';
+  static const String listenToNewsTitle = 'Escuchar Noticia';
+  static const String playingInSpanish = 'Reproduciendo en Español...';
+  static const String playingInEnglish = 'Playing in English...';
+  static const String myAccountTitle = 'Mi Cuenta';
+  static const String subscriptionSimulationTitle = 'Simulación de Suscripción';
+  static const String premiumStatusLabel = '✨ ESTADO PREMIUM';
+  static const String freeStatusLabel = '👤 ESTADO GRATUITO';
+  static const String availableCreditsLabel = 'Créditos disponibles';
+  static const String upgradeButtonLabel = 'Obtener Premium';
+  static const String downgradeButtonLabel = 'Bajar a Free';
+  static const String resetButtonLabel = 'Resetear';
+  static const String deleteArticleTitle = 'Eliminar artículo';
+  static const String deleteArticleContent =
+      '¿Estás seguro de que deseas eliminar este artículo de forma definitiva?';
+  static const String deleteDraftTitle = 'Eliminar borrador';
+  static const String deleteDraftContent =
+      '¿Estás seguro de que deseas eliminar este borrador? Esta acción no se puede deshacer.';
+  static const String cancelAction = 'Cancelar';
+  static const String deleteAction = 'Eliminar';
+  static const String draftDeletedMessage = 'Borrador eliminado';
+
+  // ============ Nav Bar Labels ============
+  static const String navHome = 'Inicio';
+  static const String navSaved = 'Guardados';
+  static const String navDrafts = 'Borradores';
+  static const String navAccount = 'Cuenta';
 }

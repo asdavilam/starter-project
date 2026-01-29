@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../../../core/constants/app_colors.dart';
 import '../../../../../../core/constants/app_constants.dart';
 import '../../../../../../core/utils/date_formatter.dart';
+import '../../../../../../core/utils/article_category_helper.dart';
 import '../../../../domain/entities/article.dart';
 import '../../../../domain/entities/reading_settings.dart';
 import '../../../cubit/reading_settings_cubit.dart';
@@ -38,6 +39,8 @@ class ArticleDetailContent extends StatelessWidget {
                 const SizedBox(height: AppConstants.spacing24),
                 _buildBodyContent(context, settings),
                 const SizedBox(height: AppConstants.spacing40),
+                _buildAuthorSection(settings),
+                const SizedBox(height: AppConstants.spacing40),
               ],
             ),
           ),
@@ -65,22 +68,55 @@ class ArticleDetailContent extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        if (article?.author != null) _buildAuthorChip(settings),
+        _buildCategoryChip(settings),
       ],
     );
   }
 
-  Widget _buildAuthorChip(ReadingSettings settings) {
+  Widget _buildCategoryChip(ReadingSettings settings) {
     return Chip(
       label: Text(
-        article!.author!,
+        ArticleCategoryHelper.getCategory(article),
         style: TextStyle(
           fontSize: AppConstants.chipFontSize,
-          color: _getTextPrimaryColor(settings.themeMode),
+          fontWeight: FontWeight.bold,
+          color: _getChipTextColor(settings.themeMode),
         ),
       ),
       backgroundColor: _getChipBackgroundColor(settings.themeMode),
       visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+
+  Widget _buildAuthorSection(ReadingSettings settings) {
+    if (article?.author == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: _getDividerColor(settings.themeMode)),
+        const SizedBox(height: AppConstants.spacing16),
+        Text(
+          'WRITTEN BY',
+          style: TextStyle(
+            color: _getTextSecondaryColor(settings.themeMode),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: AppConstants.spacing8),
+        Text(
+          article!.author!,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: _getTextPrimaryColor(settings.themeMode),
+          ),
+        ),
+      ],
     );
   }
 
@@ -172,11 +208,35 @@ class ArticleDetailContent extends StatelessWidget {
   Color _getChipBackgroundColor(ReadingThemeMode mode) {
     switch (mode) {
       case ReadingThemeMode.dark:
-        return Colors.white12;
+        return const Color(0xFF333333); // Slightly lighter than background
       case ReadingThemeMode.sepia:
         return const Color(0xFFE8DCC8);
       case ReadingThemeMode.normal:
         return Colors.grey[200]!;
+    }
+  }
+
+  /// Get chip text color based on theme mode
+  Color _getChipTextColor(ReadingThemeMode mode) {
+    switch (mode) {
+      case ReadingThemeMode.dark:
+        return Colors.white;
+      case ReadingThemeMode.sepia:
+        return const Color(0xFF5B4636);
+      case ReadingThemeMode.normal:
+        return AppColors.textPrimary;
+    }
+  }
+
+  /// Get divider color based on theme mode
+  Color _getDividerColor(ReadingThemeMode mode) {
+    switch (mode) {
+      case ReadingThemeMode.dark:
+        return Colors.white24;
+      case ReadingThemeMode.sepia:
+        return Colors.black12;
+      case ReadingThemeMode.normal:
+        return Colors.grey[300]!;
     }
   }
 

@@ -61,4 +61,16 @@ class AppColors {
   ];
 
   static const List<double> heroGradientStops = [0.0, 0.4, 1.0];
+
+  static const LinearGradient premiumGradient = LinearGradient(
+    colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient freeGradient = LinearGradient(
+    colors: [Color(0xFFE0E0E0), Color(0xFFBDBDBD)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 }

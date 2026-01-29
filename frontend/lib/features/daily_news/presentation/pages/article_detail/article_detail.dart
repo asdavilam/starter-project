@@ -67,14 +67,19 @@ class ArticleDetailsView extends HookWidget {
             ),
             body: CustomScrollView(
               slivers: [
-                ArticleDetailAppBar(
-                  article: article,
-                  onShowAISummary: () => _onShowAISummary(context),
-                  onPlayAudio: () => _onPlayAudio(context),
-                  onTranslate: () => _onTranslatePressed(context),
-                  onReadingSettingSelected: (value) =>
-                      _onReadingSettingSelected(context, value),
-                  backgroundColor: backgroundColor,
+                BlocBuilder<ArticleDetailCubit, ArticleDetailState>(
+                  builder: (context, state) {
+                    return ArticleDetailAppBar(
+                      article: article,
+                      onShowAISummary: () => _onShowAISummary(context),
+                      onPlayAudio: () => _onPlayAudio(context),
+                      isPlaying: state is ArticleDetailAudioPlaying,
+                      onTranslate: () => _onTranslatePressed(context),
+                      onReadingSettingSelected: (value) =>
+                          _onReadingSettingSelected(context, value),
+                      backgroundColor: backgroundColor,
+                    );
+                  },
                 ),
                 ArticleDetailContent(article: article),
               ],
@@ -108,40 +113,26 @@ class ArticleDetailsView extends HookWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Seleccionar Idioma',
+              AppConstants.chooseLanguageTitle,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            ListTile(
-              leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
-              title: const Text('Inglés (English)'),
-              onTap: () {
-                Navigator.pop(context);
-                context
-                    .read<ArticleDetailCubit>()
-                    .translateArticle(article!, 'English');
-              },
-            ),
-            ListTile(
-              leading: const Text('🇫🇷', style: TextStyle(fontSize: 24)),
-              title: const Text('Francés (Français)'),
-              onTap: () {
-                Navigator.pop(context);
-                context
-                    .read<ArticleDetailCubit>()
-                    .translateArticle(article!, 'French');
-              },
-            ),
-            ListTile(
-              leading: const Text('🇩🇪', style: TextStyle(fontSize: 24)),
-              title: const Text('Alemán (Deutsch)'),
-              onTap: () {
-                Navigator.pop(context);
-                context
-                    .read<ArticleDetailCubit>()
-                    .translateArticle(article!, 'German');
-              },
-            ),
+            ...AppConstants.supportedTranslationLanguages.entries.map((entry) {
+              final parts = entry.value.split(' ');
+              final flag = parts[0];
+              final name = parts.sublist(1).join(' ');
+
+              return ListTile(
+                leading: Text(flag, style: const TextStyle(fontSize: 24)),
+                title: Text(name),
+                onTap: () {
+                  Navigator.pop(context);
+                  context
+                      .read<ArticleDetailCubit>()
+                      .translateArticle(article!, entry.key);
+                },
+              );
+            }).toList(),
           ],
         ),
       ),
@@ -239,6 +230,13 @@ class ArticleDetailsView extends HookWidget {
   }
 
   void _onPlayAudio(BuildContext context) {
+    // Check current state
+    final cubit = context.read<ArticleDetailCubit>();
+    if (cubit.state is ArticleDetailAudioPlaying) {
+      cubit.stopSpeaking();
+      return;
+    }
+
     // Robust text selection for audio: Content -> Description -> Empty
     final textToSpeak = (article?.content?.isNotEmpty == true)
         ? article!.content!
@@ -246,12 +244,49 @@ class ArticleDetailsView extends HookWidget {
             ? article!.description!
             : '';
 
-    if (textToSpeak.isNotEmpty) {
-      context.read<ArticleDetailCubit>().speakSummary(textToSpeak);
-      _showSnackBar(context, 'Reproduciendo artículo...');
-    } else {
+    if (textToSpeak.isEmpty) {
       _showSnackBar(context, 'No hay contenido para reproducir');
+      return;
     }
+
+    // Show language selection
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              AppConstants.listenToNewsTitle,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ...AppConstants.supportedTTSLanguages.entries.map((entry) {
+              final parts = entry.value.split(' ');
+              final flag = parts[0];
+              final name = parts.sublist(1).join(' ');
+
+              return ListTile(
+                leading: Text(flag, style: const TextStyle(fontSize: 24)),
+                title: Text(name),
+                onTap: () {
+                  Navigator.pop(context);
+                  cubit.speakArticle(textToSpeak, language: entry.key);
+                  final msg = entry.key == 'Spanish'
+                      ? AppConstants.playingInSpanish
+                      : AppConstants.playingInEnglish;
+                  _showSnackBar(context, msg);
+                },
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
   }
 
   void _onReadingSettingSelected(BuildContext context, String value) {

@@ -8,14 +8,13 @@ import '../../../../domain/entities/article.dart';
 import '../../../../../subscription/presentation/cubit/subscription_cubit.dart';
 import '../../../../../subscription/presentation/cubit/subscription_state.dart';
 
-/// Modular SliverAppBar component for Article Details
-/// Extracted for better maintainability and testability
 class ArticleDetailAppBar extends StatelessWidget {
   final ArticleEntity? article;
   final VoidCallback onShowAISummary;
   final VoidCallback onPlayAudio;
   final ValueChanged<String> onReadingSettingSelected;
   final VoidCallback onTranslate;
+  final bool isPlaying;
 
   final Color? backgroundColor;
 
@@ -26,6 +25,7 @@ class ArticleDetailAppBar extends StatelessWidget {
     required this.onPlayAudio,
     required this.onReadingSettingSelected,
     required this.onTranslate,
+    this.isPlaying = false,
     this.backgroundColor,
   }) : super(key: key);
 
@@ -116,7 +116,10 @@ class ArticleDetailAppBar extends StatelessWidget {
 
       // TTS Button
       IconButton(
-        icon: const Icon(Icons.volume_up, color: AppColors.iconOnPrimary),
+        icon: Icon(
+          isPlaying ? Icons.stop_circle_outlined : Icons.volume_up,
+          color: isPlaying ? Colors.redAccent : AppColors.iconOnPrimary,
+        ),
         onPressed: onPlayAudio,
         style: IconButton.styleFrom(
           backgroundColor: AppColors.overlay,

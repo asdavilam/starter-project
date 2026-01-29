@@ -58,6 +58,18 @@ class ArticleDetailQuotaExceeded extends ArticleDetailState {
   const ArticleDetailQuotaExceeded();
 }
 
+class ArticleDetailAudioPlaying extends ArticleDetailState {
+  final String summary;
+  const ArticleDetailAudioPlaying(this.summary);
+
+  @override
+  List<Object?> get props => [summary];
+}
+
+class ArticleDetailAudioStopped extends ArticleDetailState {
+  const ArticleDetailAudioStopped();
+}
+
 /// Cubit for managing Article Detail AI features
 class ArticleDetailCubit extends Cubit<ArticleDetailState> {
   final GeminiService _geminiService;
@@ -160,18 +172,33 @@ class ArticleDetailCubit extends Cubit<ArticleDetailState> {
     }
   }
 
-  /// Reads the summary aloud using TTS
-  Future<void> speakSummary(String text) async {
+  /// Reads the article aloud using TTS
+  Future<void> speakArticle(String text, {String? language}) async {
     try {
-      await _ttsService.speak(text);
+      emit(ArticleDetailAudioPlaying(text));
+      // Default to Spanish (es-ES) if not specified or "Spanish" selected
+      // Map friendly names to locale codes
+      String locale = 'es-ES';
+      if (language == 'English') locale = 'en-US';
+
+      await _ttsService.speak(text, language: locale);
     } catch (e) {
-      // TTS errors are non-critical
+      // TTS errors are non-critical, but we should reset state
+      emit(const ArticleDetailAudioStopped());
     }
   }
 
   /// Stops TTS playback
   Future<void> stopSpeaking() async {
     await _ttsService.stop();
+
+    // Check if we have the summmary in the current state to restore it
+    if (state is ArticleDetailAudioPlaying) {
+      final currentSummary = (state as ArticleDetailAudioPlaying).summary;
+      emit(ArticleDetailSummaryLoaded(currentSummary));
+    } else {
+      emit(const ArticleDetailAudioStopped());
+    }
   }
 
   /// Cleanup when cubit is closed

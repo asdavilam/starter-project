@@ -68,97 +68,161 @@ class MainWrapper extends HookWidget {
         },
         child: Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: IndexedStack(
-            index: selectedIndex.value,
-            children: [
-              // 0. Home
-              const DailyNews(),
-              // 1. Saved Articles (Bookmarks)
-              const SavedArticles(),
-              // 2. New Article (Publish)
-              PublishArticlePage(
-                key: publishPageKey,
-                onCancel: () =>
-                    handleTabSelection(0), // Default to home on cancel
-              ),
-              // 3. Drafts
-              const DraftsPage(),
-              // 4. Account
-              const AccountPage(),
-            ],
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.05, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: _getPage(selectedIndex.value, publishPageKey,
+                () => handleTabSelection(0)),
           ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: BottomNavigationBar(
-              currentIndex: selectedIndex.value,
-              onTap: (index) {
-                if (index == 1) {
-                  // Refresh Saved Articles when tapping the tab
-                  localArticleBloc.add(const GetSavedArticles());
-                }
-                if (index == 3) {
-                  draftsCubit.loadDrafts();
-                }
-                handleTabSelection(index);
-              },
-              backgroundColor: Colors.white,
-              elevation: 0,
-              type: BottomNavigationBarType.fixed,
-              selectedItemColor: Theme.of(context).primaryColor,
-              unselectedItemColor: Colors.grey,
-              showSelectedLabels: false,
-              showUnselectedLabels: false,
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home_filled),
-                  label: 'Inicio',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.bookmark_border),
-                  label: 'Guardados',
-                ),
-                BottomNavigationBarItem(
-                  icon: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context)
-                              .primaryColor
-                              .withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+          bottomNavigationBar: SafeArea(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(
+                  10, 0, 10, 10), // Reduced L/R padding
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.transparent, // Floating feel
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 5),
                     ),
-                    child: const Icon(Icons.add, color: Colors.white),
-                  ),
-                  label: 'Nuevo',
+                  ],
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.drive_file_rename_outline),
-                  label: 'Borradores',
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildNavItem(context, 0, Icons.home_filled, 'Inicio',
+                        selectedIndex.value,
+                        onTap: () => handleTabSelection(0)),
+                    _buildNavItem(context, 1, Icons.bookmark_border,
+                        'Guardados', selectedIndex.value, onTap: () {
+                      localArticleBloc.add(const GetSavedArticles());
+                      handleTabSelection(1);
+                    }),
+                    _buildAddButton(context, 2, selectedIndex.value,
+                        () => handleTabSelection(2)),
+                    _buildNavItem(context, 3, Icons.drive_file_rename_outline,
+                        'Borradores', selectedIndex.value, onTap: () {
+                      draftsCubit.loadDrafts();
+                      handleTabSelection(3);
+                    }),
+                    _buildNavItem(context, 4, Icons.person_outline, 'Cuenta',
+                        selectedIndex.value,
+                        onTap: () => handleTabSelection(4)),
+                  ],
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  label: 'Cuenta',
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+  Widget _getPage(int index, GlobalKey<PublishArticlePageState> key,
+      VoidCallback onCancel) {
+    switch (index) {
+      case 0:
+        return const DailyNews();
+      case 1:
+        return const SavedArticles();
+      case 2:
+        return PublishArticlePage(
+          key: key,
+          onCancel: onCancel,
+        );
+      case 3:
+        return const DraftsPage();
+      case 4:
+        return const AccountPage();
+      default:
+        return const DailyNews();
+    }
+  }
+
+  Widget _buildNavItem(BuildContext context, int index, IconData icon,
+      String label, int currentIndex,
+      {VoidCallback? onTap}) {
+    final isSelected = index == currentIndex;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.translucent,
+      child: Container(
+        color: Colors.transparent,
+        padding: const EdgeInsets.all(8), // Reduced hit-area padding
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.all(10), // Tighter visual pill
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.black.withValues(alpha: 0.05)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Icon(
+            icon,
+            color: isSelected ? Colors.black : Colors.grey,
+            size: isSelected ? 26 : 24, // Slightly smaller active icon
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddButton(
+      BuildContext context, int index, int currentIndex, VoidCallback onTap) {
+    final isSelected = index == currentIndex;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isSelected ? 0.4 : 0.2),
+              blurRadius: isSelected ? 12 : 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.add,
+          color: Colors.white,
+          size: isSelected ? 30 : 26,
+        ),
+      ),
+    );
+  }
 }
+
+// Helper mixin or extension not needed if we keep it simple.
+// I will insert update the build method to use these helpers, but wait, 
+// _buildNavItem needs to call handleTabSelection.
+// I'll fix the callback logic in the next replacement chunk.
+

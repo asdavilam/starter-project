@@ -5,6 +5,7 @@ import '../../domain/entities/article_entity.dart';
 import '../bloc/drafts_cubit.dart';
 import '../bloc/publish_article_bloc.dart';
 import 'publish_article_page.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class DraftsPage extends StatelessWidget {
   const DraftsPage({super.key});
@@ -126,20 +127,45 @@ class _DraftItem extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
+      confirmDismiss: (direction) async {
+        return await _showDeleteConfirmation(context);
+      },
       onDismissed: (_) {
         if (draft.id != null) {
           context.read<DraftsCubit>().deleteDraft(draft.id!);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Borrador eliminado')),
+            const SnackBar(content: Text(AppConstants.draftDeletedMessage)),
           );
         } else {
-          // Should not happen due to check above, but safe-guard
-          // Force refresh?
           context.read<DraftsCubit>().loadDrafts();
         }
       },
       child: _buildCardContent(context),
     );
+  }
+
+  Future<bool> _showDeleteConfirmation(BuildContext context) async {
+    return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(AppConstants.deleteDraftTitle),
+            content: const Text(AppConstants.deleteDraftContent),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(AppConstants.cancelAction),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text(AppConstants.deleteAction,
+                    style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Widget _buildCardContent(BuildContext context) {

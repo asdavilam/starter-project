@@ -59,7 +59,6 @@ class _MyArticleTileState extends State<MyArticleTile> {
                 _buildImage(context),
                 const SizedBox(width: 16),
                 _buildTitleAndMetadata(),
-                _buildRemovableArea(),
               ],
             ),
           ),
@@ -106,11 +105,12 @@ class _MyArticleTileState extends State<MyArticleTile> {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Push content apart
         children: [
           // Title
           Text(
             widget.article?.title ?? '',
-            maxLines: 4,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontFamily: 'Butler',
@@ -121,7 +121,7 @@ class _MyArticleTileState extends State<MyArticleTile> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Metadata: Date + Read Time
           Row(
@@ -147,22 +147,6 @@ class _MyArticleTileState extends State<MyArticleTile> {
     );
   }
 
-  Widget _buildRemovableArea() {
-    if (widget.isRemovable == true) {
-      return IconButton(
-        onPressed: _onRemove,
-        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 28),
-        padding: const EdgeInsets.all(12), // Increase touch area
-        constraints:
-            const BoxConstraints(), // Allow custom sizing logic if needed
-        style: IconButton.styleFrom(
-          highlightColor: Colors.red.withValues(alpha: 0.1),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
   String _parseDate(DateTime? date) {
     if (date == null) return '';
     return date.timeAgo;
@@ -171,12 +155,6 @@ class _MyArticleTileState extends State<MyArticleTile> {
   void _onTap() {
     if (widget.onArticlePressed != null) {
       widget.onArticlePressed!(widget.article!);
-    }
-  }
-
-  void _onRemove() {
-    if (widget.onRemove != null) {
-      widget.onRemove!(widget.article!);
     }
   }
 }

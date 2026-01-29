@@ -8,6 +8,8 @@ import '../../../subscription/presentation/cubit/subscription_cubit.dart';
 import '../../../subscription/presentation/cubit/subscription_state.dart';
 import '../../../articles/presentation/widgets/my_article_tile.dart';
 import '../../../articles/presentation/pages/publish_article_page.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../articles/presentation/bloc/publish_article_bloc.dart';
 
 class AccountPage extends HookWidget {
@@ -30,7 +32,7 @@ class _AccountView extends HookWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Mi Cuenta',
+          AppConstants.myAccountTitle,
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         elevation: 0,
@@ -78,23 +80,45 @@ class _AccountView extends HookWidget {
             itemCount: state.myArticles.length,
             itemBuilder: (context, index) {
               final article = state.myArticles[index];
-              return MyArticleTile(
-                article: article,
-                isRemovable: true,
-                onRemove: (articleToRemove) {
-                  _showDeleteConfirmation(context, articleToRemove.id!);
+              return Dismissible(
+                key: Key('article_${article.id}'),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.red[400],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  child: const Icon(Icons.delete_outline,
+                      color: Colors.white, size: 30),
+                ),
+                confirmDismiss: (direction) async {
+                  return await _showDeleteConfirmation(
+                      context, article.id.toString());
                 },
-                onArticlePressed: (article) {
-                  // Navigate to PublishArticlePage for editing
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => BlocProvider(
-                        create: (_) => sl<PublishArticleBloc>(),
-                        child: PublishArticlePage(articleToEdit: article),
+                onDismissed: (direction) {
+                  context
+                      .read<AccountCubit>()
+                      .deleteArticle(article.id.toString());
+                },
+                child: MyArticleTile(
+                  article: article,
+                  isRemovable: false, // Handled by Dismissible now
+                  onRemove: null,
+                  onArticlePressed: (article) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider(
+                          create: (_) => sl<PublishArticleBloc>(),
+                          child: PublishArticlePage(articleToEdit: article),
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
           );
@@ -104,32 +128,29 @@ class _AccountView extends HookWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, String articleId) {
-    // Capture the cubit instance BEFORE opening the dialog
-    // because dialog context is not a child of BlocProvider
-    final accountCubit = context.read<AccountCubit>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar artículo'),
-        content: const Text(
-            '¿Estás seguro de que deseas eliminar este artículo publicado? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+  Future<bool> _showDeleteConfirmation(
+      BuildContext context, String articleId) async {
+    return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(AppConstants.deleteArticleTitle),
+            content: const Text(AppConstants.deleteArticleContent),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(AppConstants.cancelAction),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text(AppConstants.deleteAction,
+                    style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              accountCubit.deleteArticle(articleId);
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+        ) ??
+        false;
   }
 }
 
@@ -201,77 +222,137 @@ class _SubscriptionAdminPanel extends StatelessWidget {
           final isPro = state.isPro;
           final remaining = state.remainingRequests;
 
-          return Card(
-            color: Colors.grey[50],
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey[300]!),
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient:
+                  isPro ? AppColors.premiumGradient : AppColors.freeGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: isPro
+                      ? Colors.amber.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '⚙️ Simulación de Suscripción',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Icon(
-                        isPro ? Icons.star : Icons.star_border,
-                        color: isPro ? Colors.amber : Colors.grey,
+                        isPro ? Icons.workspace_premium : Icons.stars,
+                        color: isPro ? Colors.black87 : Colors.grey[700],
+                        size: 28,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        isPro ? 'Estado: PRO' : 'Estado: Gratuito',
+                        AppConstants.subscriptionSimulationTitle,
                         style: TextStyle(
-                          color: isPro ? Colors.green : Colors.black87,
                           fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: isPro ? Colors.black87 : Colors.grey[800],
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+
+                  // Status Badge
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isPro
+                          ? AppConstants.premiumStatusLabel
+                          : AppConstants.freeStatusLabel,
+                      style: TextStyle(
+                        color: isPro ? Colors.black87 : Colors.black54,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ),
+
                   if (!isPro) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          AppConstants.availableCreditsLabel,
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          '$remaining/20',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
-                    Text('Créditos restantes: $remaining/20'),
-                    LinearProgressIndicator(
-                      value: remaining / 20.0,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        remaining > 5 ? Colors.blue : Colors.red,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: remaining / 20.0,
+                        minHeight: 8,
+                        backgroundColor: Colors.white54,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          remaining > 5 ? Colors.blueAccent : Colors.red,
+                        ),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          if (isPro) {
-                            context.read<SubscriptionCubit>().downgradeToFree();
-                          } else {
-                            context.read<SubscriptionCubit>().upgradeToPro();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isPro ? Colors.grey : Colors.amber,
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (isPro) {
+                              context
+                                  .read<SubscriptionCubit>()
+                                  .downgradeToFree();
+                            } else {
+                              context.read<SubscriptionCubit>().upgradeToPro();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black87,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            isPro
+                                ? AppConstants.downgradeButtonLabel
+                                : AppConstants.upgradeButtonLabel,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        child: Text(isPro ? 'Bajar a Free' : 'Simular PRO'),
                       ),
-                      if (!isPro)
+                      if (!isPro) ...[
+                        const SizedBox(width: 12),
                         TextButton(
                           onPressed: () {
-                            // Reset default quota logic handled by repository,
-                            // but we can force refresh if we had a reset method in Cubit.
-                            // For now, we will just downgrade to Free which also resets/refreshes in our logic
                             context.read<SubscriptionCubit>().downgradeToFree();
                           },
-                          child: const Text('Resetear Cupo'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.black54,
+                          ),
+                          child: const Text(AppConstants.resetButtonLabel),
                         ),
+                      ],
                     ],
                   ),
                 ],

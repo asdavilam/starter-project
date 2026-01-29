@@ -70,7 +70,9 @@ class AISummaryBottomSheet extends StatelessWidget {
         if (state is ArticleDetailLoadingSummary) {
           return _buildLoadingState();
         } else if (state is ArticleDetailSummaryLoaded) {
-          return _buildSummaryState(context, state.summary);
+          return _buildSummaryState(context, state.summary, isPlaying: false);
+        } else if (state is ArticleDetailAudioPlaying) {
+          return _buildSummaryState(context, state.summary, isPlaying: true);
         } else if (state is ArticleDetailSummaryError) {
           return _buildErrorState(context, state.message);
         }
@@ -83,13 +85,23 @@ class AISummaryBottomSheet extends StatelessWidget {
   Widget _buildLoadingState() {
     return const Column(
       children: [
-        LinearProgressIndicator(),
+        SizedBox(height: AppConstants.spacing16),
+        CircularProgressIndicator(),
+        SizedBox(height: AppConstants.spacing24),
+        Text(
+          'Generando resumen inteligente...',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
+            fontSize: AppConstants.bodyFontSize,
+          ),
+        ),
         SizedBox(height: AppConstants.spacing16),
         Text(
-          'Generando resumen con IA...',
+          'Analizando contenido del artículo...',
           style: TextStyle(
             color: AppColors.textSecondary,
-            fontSize: AppConstants.bodyFontSize,
+            fontSize: AppConstants.bodySmallFontSize,
           ),
         ),
         SizedBox(height: AppConstants.spacing40),
@@ -97,7 +109,8 @@ class AISummaryBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryState(BuildContext context, String summary) {
+  Widget _buildSummaryState(BuildContext context, String summary,
+      {required bool isPlaying}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,39 +130,34 @@ class AISummaryBottomSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppConstants.spacing24),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  context.read<ArticleDetailCubit>().speakSummary(summary);
-                },
-                icon: const Icon(Icons.volume_up),
-                label: const Text('Escuchar resumen'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textOnPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppConstants.contentPaddingSmall,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.buttonBorderRadius,
-                    ),
-                  ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              if (isPlaying) {
+                context.read<ArticleDetailCubit>().stopSpeaking();
+              } else {
+                context.read<ArticleDetailCubit>().speakArticle(summary);
+              }
+            },
+            icon: Icon(isPlaying
+                ? Icons.stop_circle_outlined
+                : Icons.volume_up_outlined),
+            label: Text(isPlaying ? 'Detener lectura' : 'Escuchar resumen'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isPlaying ? AppColors.error : AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              padding: const EdgeInsets.symmetric(
+                vertical: AppConstants.contentPadding,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppConstants.buttonBorderRadius,
                 ),
               ),
+              elevation: isPlaying ? 0 : 2,
             ),
-            const SizedBox(width: AppConstants.spacing12),
-            IconButton(
-              onPressed: () {
-                context.read<ArticleDetailCubit>().stopSpeaking();
-              },
-              icon: const Icon(Icons.stop_circle_outlined),
-              color: AppColors.error,
-              iconSize: AppConstants.iconSizeLarge,
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: AppConstants.spacing16),
       ],

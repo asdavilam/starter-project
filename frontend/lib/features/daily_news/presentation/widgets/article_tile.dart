@@ -86,8 +86,17 @@ class _ArticleWidgetState extends State<ArticleWidget> {
 
                     const SizedBox(height: 16),
 
-                    // Date & Metadata
-                    _buildDateTimeBadge(),
+                    // Date & Metadata - Aligned to bottom right
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Optional: Add "Read More" or similar if desirable,
+                        // or just Spacer to push Date to right.
+                        // For now, let's keep it clean but align bottom.
+                        const Spacer(),
+                        _buildDateTimeBadge(),
+                      ],
+                    ),
                   ],
                 ),
               ),
