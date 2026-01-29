@@ -1,7 +1,8 @@
 # 📰 Symmetry Applicant Showcase - Daily News App
 
 Este repositorio contiene la solución integral para la prueba técnica de **Senior Flutter Developer**. La aplicación es un ecosistema de noticias moderno que integra Inteligencia Artificial, persistencia avanzada y una experiencia de usuario de alto nivel.
-
+> 🎬 **[VER VIDEO DEMOSTRATIVO DEL PROYECTO](https://drive.google.com/file/d/1vR1uEXRSm-yWEjHGzwXFlkQIDoSW4En8/view?usp=sharing)**
+![Home](./screenshots/home_ui.png)
 ---
 
 ## 📂 Estructura del Proyecto
