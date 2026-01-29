@@ -40,4 +40,19 @@ abstract class ArticleRepository {
   ///
   /// Retorna el ID del artículo creado en caso de éxito.
   Future<DataState<String>> createArticle(ArticleEntity article);
+
+  /// Guarda un borrador localmente
+  Future<DataState<ArticleEntity>> saveDraft(ArticleEntity article);
+
+  /// Obtiene todos los borradores locales
+  Future<DataState<List<ArticleEntity>>> getDrafts();
+
+  /// Elimina un borrador local por ID
+  Future<DataState<void>> deleteDraft(String id);
+
+  /// Elimina un artículo remoto por ID
+  Future<DataState<void>> deleteArticle(String id);
+
+  /// Actualiza un artículo remoto
+  Future<DataState<void>> updateArticle(ArticleEntity article);
 }

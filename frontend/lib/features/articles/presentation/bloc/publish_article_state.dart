@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../domain/entities/article_entity.dart';
+
 /// Estados del PublishArticleBloc
 ///
 /// Define todos los posibles estados durante la publicación de un artículo
@@ -31,6 +33,15 @@ class PublishArticleSubmitting extends PublishArticleState {
 /// Indica que el artículo se publicó correctamente
 class PublishArticleSuccess extends PublishArticleState {
   const PublishArticleSuccess();
+}
+
+class SaveDraftSuccess extends PublishArticleState {
+  final ArticleEntity article;
+
+  const SaveDraftSuccess(this.article);
+
+  @override
+  List<Object> get props => [article];
 }
 
 /// Estado de error

@@ -77,7 +77,8 @@ void main() {
       },
       act: (bloc) => bloc.add(const GetArticles()),
       expect: () => [
-        isA<RemoteArticlesDone>(), // El estado inicial Loading ya está implícito
+        isA<RemoteArticlesLoading>(),
+        isA<RemoteArticlesDone>(),
       ],
       verify: (bloc) {
         verify(() => mockGetPublishedArticlesUseCase()).called(1);
@@ -101,6 +102,7 @@ void main() {
       },
       act: (bloc) => bloc.add(const GetArticles()),
       expect: () => [
+        isA<RemoteArticlesLoading>(),
         isA<RemoteArticlesError>(),
       ],
     );

@@ -1,13 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
-import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_state.dart';
-import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
 
+import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/utils/navigation_helper.dart';
 import '../../../domain/entities/article.dart';
+import '../../bloc/article/remote/remote_article_bloc.dart';
+import '../../bloc/article/remote/remote_article_event.dart';
+import '../../bloc/article/remote/remote_article_state.dart';
 import '../../widgets/article_tile.dart';
 
+/// Daily News Page - Refactored with constants and improved error handling
 class DailyNews extends StatelessWidget {
   const DailyNews({Key? key}) : super(key: key);
 
@@ -16,101 +20,55 @@ class DailyNews extends StatelessWidget {
     return _buildPage();
   }
 
-  _buildAppbar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       title: const Text(
         'Daily News',
         style: TextStyle(
-          color: Colors.black,
-          fontSize: 24,
+          color: AppColors.textPrimary,
+          fontSize: AppConstants.titleFontSize,
           fontWeight: FontWeight.bold,
-          fontFamily: 'Butler',
+          fontFamily: AppConstants.primaryFontFamily,
         ),
       ),
       centerTitle: false,
       actions: [
         IconButton(
-          onPressed: () {},
-          icon:
-              const Icon(Icons.notifications_none_rounded, color: Colors.black),
-        ),
-        GestureDetector(
-          onTap: () => _onShowSavedArticlesViewTapped(context),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Icon(Icons.bookmark_border_rounded, color: Colors.black),
+          onPressed: () => _onNotificationsPressed(context),
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.iconPrimary,
           ),
         ),
       ],
     );
   }
 
-  _buildPage() {
+  Widget _buildPage() {
     return BlocConsumer<RemoteArticlesBloc, RemoteArticlesState>(
       listener: (context, state) {
         if (state is RemoteArticlesError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('⚠️ ${state.error ?? "No se pudo actualizar"}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showErrorSnackBar(context, state.error);
         }
       },
       builder: (context, state) {
-        // 1. Si hay datos (ya sea Done, Loading con datos, o Error con datos) mostramos la lista
+        // Show articles if available
         if (state.articles != null && state.articles!.isNotEmpty) {
           return _buildArticlesPage(context, state.articles!);
         }
 
-        // 2. Si no hay datos y está cargando, mostramos spinner centro
+        // Show loading indicator
         if (state is RemoteArticlesLoading) {
-          return Scaffold(
-              appBar: _buildAppbar(context),
-              body: const Center(child: CupertinoActivityIndicator()));
+          return const Center(child: CupertinoActivityIndicator());
         }
 
-        // 3. Si no hay datos y hay error, mostramos pantalla de error
+        // Show error state
         if (state is RemoteArticlesError) {
-          return Scaffold(
-              appBar: _buildAppbar(context),
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 60, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No pudimos cargar las noticias',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Text(
-                        state.error ?? 'Error desconocido',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        context
-                            .read<RemoteArticlesBloc>()
-                            .add(const GetArticles());
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reintentar'),
-                    ),
-                  ],
-                ),
-              ));
+          return _buildErrorState(context, state.error);
         }
 
-        // 4. Default / Empty
-        return const SizedBox();
+        // Empty state
+        return _buildEmptyState(context);
       },
     );
   }
@@ -118,20 +76,16 @@ class DailyNews extends StatelessWidget {
   Widget _buildArticlesPage(
       BuildContext context, List<ArticleEntity> articles) {
     return Scaffold(
-      appBar: _buildAppbar(context),
+      appBar: _buildAppBar(context),
       body: RefreshIndicator(
         onRefresh: () async {
           context.read<RemoteArticlesBloc>().add(const GetArticles());
-          // Esperar un poco o hasta que termine el loading?
-          // RefreshIndicator espera un Future.
-
-          // Opción pro: Esperar a que el estado cambie.
-          // Opción simple: Delay fijo o null (no bloqueante visualmente gracias al bloc).
-          // Dado que el bloc emite estados, podemos simplemente retornar.
-          return Future.delayed(const Duration(seconds: 1));
         },
         child: ListView.builder(
           itemCount: articles.length,
+          padding: const EdgeInsets.symmetric(
+            vertical: AppConstants.contentPadding,
+          ),
           itemBuilder: (context, index) {
             return ArticleWidget(
               article: articles[index],
@@ -144,11 +98,89 @@ class DailyNews extends StatelessWidget {
     );
   }
 
-  void _onArticlePressed(BuildContext context, ArticleEntity article) {
-    Navigator.pushNamed(context, '/ArticleDetails', arguments: article);
+  Widget _buildErrorState(BuildContext context, String? error) {
+    return Scaffold(
+      appBar: _buildAppBar(context),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: AppConstants.iconSizeHuge,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: AppConstants.spacing16),
+            Text(
+              error ?? AppConstants.genericErrorMessage,
+              style: const TextStyle(
+                fontSize: AppConstants.bodyFontSize,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppConstants.spacing24),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<RemoteArticlesBloc>().add(const GetArticles());
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _onShowSavedArticlesViewTapped(BuildContext context) {
-    Navigator.pushNamed(context, '/SavedArticles');
+  Widget _buildEmptyState(BuildContext context) {
+    return Scaffold(
+      appBar: _buildAppBar(context),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.article_outlined,
+              size: AppConstants.iconSizeXXLarge,
+              color: AppColors.iconDisabled,
+            ),
+            SizedBox(height: AppConstants.spacing16),
+            Text(
+              AppConstants.emptyStateMessage,
+              style: TextStyle(
+                fontFamily: AppConstants.primaryFontFamily,
+                fontSize: AppConstants.bodyFontSize,
+                color: AppColors.textHint,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onArticlePressed(BuildContext context, ArticleEntity article) {
+    NavigationHelper.navigateToArticleDetails(
+      context: context,
+      article: article,
+      refreshOnReturn: true,
+    );
+  }
+
+  void _onNotificationsPressed(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Notificaciones próximamente...')),
+    );
+  }
+
+  void _showErrorSnackBar(BuildContext context, String? error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('⚠️ ${error ?? AppConstants.genericErrorMessage}'),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }
