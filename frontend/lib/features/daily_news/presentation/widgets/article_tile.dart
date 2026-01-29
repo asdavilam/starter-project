@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/article_category_helper.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../domain/entities/article.dart';
 
@@ -39,30 +40,58 @@ class _ArticleWidgetState extends State<ArticleWidget> {
         onTapCancel: () => setState(() => _isPressed = false),
         onTap: _onTap,
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+          margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                spreadRadius: 1,
-                blurRadius: 10,
-                offset: const Offset(0, 1),
+                color: Colors.grey.withValues(alpha: 0.08),
+                spreadRadius: 2,
+                blurRadius: 15,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildImage(context),
-                const SizedBox(width: 16),
-                _buildTitleAndMetadata(),
-                _buildRemovableArea(),
-              ],
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Featured Image (Top)
+              _buildImage(context),
+
+              // 2. Content (Bottom)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Badge
+                    _buildCategoryBadge(),
+
+                    const SizedBox(height: 12),
+
+                    // Title
+                    Text(
+                      widget.article?.title ?? '',
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Butler',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18, // Increased font size
+                        color: Colors.black87,
+                        height: 1.3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Date & Metadata
+                    _buildDateTimeBadge(),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -71,12 +100,12 @@ class _ArticleWidgetState extends State<ArticleWidget> {
 
   Widget _buildImage(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20.0),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: Container(
-        width: 100, // Fixed width for consistency
-        height: 100, // Fixed height for consistency (squircle feeling)
+        width: double.infinity,
+        height: 180, // Much larger image area
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.08),
+          color: Colors.grey.withValues(alpha: 0.1),
         ),
         child: CachedNetworkImage(
           imageUrl: widget.article?.urlToImage ?? '',
@@ -85,17 +114,11 @@ class _ArticleWidgetState extends State<ArticleWidget> {
             child: CupertinoActivityIndicator(),
           ),
           errorWidget: (context, url, error) => Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFEEEEEE), Colors.white],
-              ),
-            ),
+            color: Colors.grey.withValues(alpha: 0.1),
             child: const Icon(
               Icons.article_outlined,
               color: Colors.grey,
-              size: 30,
+              size: 40,
             ),
           ),
         ),
@@ -103,62 +126,68 @@ class _ArticleWidgetState extends State<ArticleWidget> {
     );
   }
 
-  Widget _buildTitleAndMetadata() {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// Badge showing article category
+  Widget _buildCategoryBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _getCategoryColor().withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: _getCategoryColor().withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        _getCategoryName(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: _getCategoryColor(),
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  /// Date/time badge at bottom of card
+  Widget _buildDateTimeBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Title
-          Text(
-            widget.article?.title ?? '',
-            maxLines: 4, // Increased to 4 as requested
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: 'Butler',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: Colors.black87,
-              height: 1.3,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Metadata: Date + Read Time
-          Row(
-            children: [
-              const Icon(Icons.access_time_rounded,
-                  size: 14, color: Colors.grey),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  '${_parseDate(widget.article!.publishedAt)} • 4 min de lectura',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+          Icon(Icons.access_time_rounded,
+              size: 12, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              _parseDate(widget.article!.publishedAt),
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
               ),
-            ],
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRemovableArea() {
-    if (widget.isRemovable == true) {
-      return GestureDetector(
-        onTap: _onRemove,
-        child: const Padding(
-          padding: EdgeInsets.only(left: 8),
-          child: Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
+  /// Get category name from article using Helper
+  String _getCategoryName() {
+    return ArticleCategoryHelper.getCategory(widget.article);
+  }
+
+  /// Get color for category badge using Helper
+  Color _getCategoryColor() {
+    return ArticleCategoryHelper.getCategoryColor(_getCategoryName());
   }
 
   String _parseDate(String? dateString) {
@@ -174,12 +203,6 @@ class _ArticleWidgetState extends State<ArticleWidget> {
   void _onTap() {
     if (widget.onArticlePressed != null) {
       widget.onArticlePressed!(widget.article!);
-    }
-  }
-
-  void _onRemove() {
-    if (widget.onRemove != null) {
-      widget.onRemove!(widget.article!);
     }
   }
 }

@@ -71,38 +71,12 @@ class ArticleDetailAppBar extends StatelessWidget {
   }
 
   Widget _buildReadingSettingsMenu(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: Container(
-        padding: const EdgeInsets.all(AppConstants.spacing8),
-        decoration: const BoxDecoration(
-          color: AppColors.overlay,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.text_fields, color: AppColors.iconOnPrimary),
+    return IconButton(
+      icon: const Icon(Icons.tune, color: AppColors.iconOnPrimary),
+      onPressed: () => onReadingSettingSelected('show_settings'),
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.overlay,
       ),
-      onSelected: onReadingSettingSelected,
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'font_size',
-          child: Row(
-            children: [
-              Icon(Icons.format_size),
-              SizedBox(width: AppConstants.spacing8),
-              Text('Tamaño de letra'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'sepia',
-          child: Row(
-            children: [
-              Icon(Icons.chrome_reader_mode_outlined),
-              SizedBox(width: AppConstants.spacing8),
-              Text('Modo Sepia'),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

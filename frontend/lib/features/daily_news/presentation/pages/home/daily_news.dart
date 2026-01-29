@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/utils/article_category_helper.dart';
 import '../../../../../core/utils/navigation_helper.dart';
 import '../../../domain/entities/article.dart';
 import '../../bloc/article/remote/remote_article_bloc.dart';
@@ -12,8 +13,15 @@ import '../../bloc/article/remote/remote_article_state.dart';
 import '../../widgets/article_tile.dart';
 
 /// Daily News Page - Refactored with constants and improved error handling
-class DailyNews extends StatelessWidget {
+class DailyNews extends StatefulWidget {
   const DailyNews({Key? key}) : super(key: key);
+
+  @override
+  State<DailyNews> createState() => _DailyNewsState();
+}
+
+class _DailyNewsState extends State<DailyNews> {
+  String _selectedCategory = ArticleCategoryHelper.kAll;
 
   @override
   Widget build(BuildContext context) {
@@ -75,25 +83,131 @@ class DailyNews extends StatelessWidget {
 
   Widget _buildArticlesPage(
       BuildContext context, List<ArticleEntity> articles) {
+    // Apply local filtering based on selected category
+    final filteredArticles = _filterArticles(articles);
+
     return Scaffold(
       appBar: _buildAppBar(context),
       body: RefreshIndicator(
         onRefresh: () async {
           context.read<RemoteArticlesBloc>().add(const GetArticles());
         },
-        child: ListView.builder(
-          itemCount: articles.length,
-          padding: const EdgeInsets.symmetric(
-            vertical: AppConstants.contentPadding,
-          ),
-          itemBuilder: (context, index) {
-            return ArticleWidget(
-              article: articles[index],
-              onArticlePressed: (article) =>
-                  _onArticlePressed(context, article),
-            );
-          },
+        child: Column(
+          children: [
+            // Category Filter
+            _buildCategoryFilter(),
+
+            // Articles List
+            Expanded(
+              child: filteredArticles.isEmpty
+                  ? _buildEmptyFilterState()
+                  : ListView.builder(
+                      itemCount: filteredArticles.length,
+                      padding: const EdgeInsets.only(
+                        bottom: AppConstants.contentPadding,
+                        left: 14,
+                        right: 14,
+                        top: 10,
+                      ),
+                      itemBuilder: (context, index) {
+                        return ArticleWidget(
+                          article: filteredArticles[index],
+                          onArticlePressed: (article) =>
+                              _onArticlePressed(context, article),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  /// Horizontal scrollable list of category chips
+  Widget _buildCategoryFilter() {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: ArticleCategoryHelper.categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final category = ArticleCategoryHelper.categories[index];
+          final name = category['name'] as String;
+          final emoji = category['emoji'] as String;
+          final isSelected = _selectedCategory == name;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedCategory = name;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary
+                    : Colors.grey.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : Colors.transparent,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Filter articles locally
+  List<ArticleEntity> _filterArticles(List<ArticleEntity> articles) {
+    if (_selectedCategory == ArticleCategoryHelper.kAll) {
+      return articles;
+    }
+
+    return articles.where((article) {
+      final category = ArticleCategoryHelper.getCategory(article);
+      return category == _selectedCategory;
+    }).toList();
+  }
+
+  Widget _buildEmptyFilterState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search_off, size: 50, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            'No hay noticias en "$_selectedCategory"',
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ],
       ),
     );
   }

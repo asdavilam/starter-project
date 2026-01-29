@@ -55,3 +55,6 @@ android/key.properties
 ios/Pods/
 ios/Podfile.lock
 ios/.symlinks/
+
+# Environment variables - NEVER commit API keys
+.env

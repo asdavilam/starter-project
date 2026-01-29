@@ -37,6 +37,16 @@ import 'features/articles/domain/use_cases/update_article_use_case.dart';
 import 'features/articles/domain/use_cases/delete_article_use_case.dart';
 import 'features/account/presentation/bloc/account_cubit.dart';
 
+// AI Services
+import 'core/config/api_keys.dart';
+import 'core/services/gemini_service.dart';
+import 'core/services/tts_service.dart';
+import 'features/daily_news/presentation/cubit/article_detail_cubit.dart';
+
+// Reading Settings
+import 'features/daily_news/data/data_sources/local/reading_settings_local_data_source.dart';
+import 'features/daily_news/presentation/cubit/reading_settings_cubit.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
@@ -142,7 +152,35 @@ Future<void> initializeDependencies() async {
     () => DraftsCubit(sl(), sl()),
   );
 
+  // Account Feature - Cubit
   sl.registerFactory<AccountCubit>(
     () => AccountCubit(sl(), sl()),
+  );
+
+  // AI Services - Core Services
+  sl.registerLazySingleton<GeminiService>(
+    () => GeminiService(apiKey: ApiKeys.geminiApiKey),
+  );
+
+  sl.registerLazySingleton<TtsService>(
+    () => TtsService(),
+  );
+
+  // AI Services - Cubit
+  sl.registerFactory<ArticleDetailCubit>(
+    () => ArticleDetailCubit(
+      geminiService: sl(),
+      ttsService: sl(),
+    ),
+  );
+
+  // Reading Settings - Data Source
+  sl.registerLazySingleton<ReadingSettingsLocalDataSource>(
+    () => ReadingSettingsLocalDataSourceImpl(prefs: sl()),
+  );
+
+  // Reading Settings - Cubit
+  sl.registerFactory<ReadingSettingsCubit>(
+    () => ReadingSettingsCubit(localDataSource: sl()),
   );
 }
